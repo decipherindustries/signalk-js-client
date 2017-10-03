@@ -1,5 +1,5 @@
 {
-  "name": "@signalk/client",
+  "name": "signalk-js-client-alt",
   "version": "0.1.1",
   "description": "Signal K JavaScript Client",
   "main": "./dist/index.js",
