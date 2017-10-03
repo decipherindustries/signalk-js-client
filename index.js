@@ -1,23 +1,12 @@
 /* global Primus */
-var _object = require('lodash/object'),
-  EventEmitter = require('eventemitter3'),
+var EventEmitter = require('eventemitter3'),
   debug = require('debug')('signalk:client'),
   url = require('url'),
   Promise = require('bluebird'),
   agent = require('superagent-promise')(require('superagent'), Promise);
 
 var BrowserWebSocket = global.WebSocket || global.MozWebSocket;
-var NodeWebSocket;
-if (typeof window === 'undefined') {
-  try {
-    NodeWebSocket = require('ws');
-  } catch (e) {} // empty
-}
-
 var WebSocket = BrowserWebSocket;
-if (!WebSocket && typeof window === 'undefined') {
-  WebSocket = NodeWebSocket;
-}
 
 /**
  * @summary Create a new Signal K Client
@@ -163,43 +152,11 @@ Client.prototype.get = function(path, hostname, port) {
 };
 
 Client.prototype.discoveryAvailable = function() {
-  return moduleAvailable('md' + 'ns');
+  return false
 };
 
 Client.prototype.startDiscovery = function() {
-  var that = this;
-  return new Promise(function(resolve, reject) {
-    if (!that.discoveryAvailable()) {
-      console.log(
-        "Discovery requires mdns, please install it with 'npm install mdns' " + 'or specify hostname and port'
-      );
-      reject('Discovery requires mdns');
-    }
-
-    //use dynamic require & maybe fool packagers
-    var mdns = require('md' + 'ns');
-
-    that.browser = mdns.createBrowser(mdns.tcp('signalk-http'), {
-      resolverSequence: [mdns.rst.DNSServiceResolve()],
-    });
-    that.browser.on('serviceUp', function(service) {
-      debug('Discovered signalk-http:' + JSON.stringify(service, null, 2));
-      debug('GETting /signalk');
-      that.get('/signalk', service.host, service.port).then(function(response) {
-        debug('Got ' + JSON.stringify(response.body.endpoints, null, 2));
-        var discovery = {
-          host: service.host,
-          port: service.port,
-          httpResponse: response.body,
-          service: service,
-        };
-        that.emit('discovery', discovery);
-        resolve(discovery); // only the first time will matter
-      });
-    });
-    debug('Starting discovery');
-    that.browser.start();
-  });
+  return Promise.resolve([])
 };
 
 /**
@@ -216,24 +173,8 @@ Client.prototype.stopDiscovery = function() {
 /**
  * @returns A Promise
  */
-Client.prototype.discoverAndConnect = function(options) {
-  debug('discoverAndConnect');
-  var that = this;
-
-  return this.startDiscovery().then(function(discovery) {
-    var httpResponse = discovery.httpResponse;
-    that.endpoints = httpResponse.endpoints;
-    debug('Connecting to ' + JSON.stringify(_object.values(that.endpoints)[0]['signalk-ws'], null, 2));
-    that.stopDiscovery();
-    return that.connectDeltaByUrl(
-      _object.values(that.endpoints)[0]['signalk-ws'],
-      options.onData,
-      options.onConnect,
-      options.onDisconnect,
-      options.onError,
-      options.onClose
-    );
-  });
+Client.prototype.discoverAndConnect = function() {
+  return Promise.reject(new Error('Not supported'))
 };
 
 /**
@@ -445,14 +386,6 @@ function isDelta(msg) {
 
 function isHello(msg) {
   return typeof msg.version != 'undefined';
-}
-
-function moduleAvailable(name) {
-  try {
-    require.resolve(name);
-    return true;
-  } catch (e) {}
-  return false;
 }
 
 module.exports = {
