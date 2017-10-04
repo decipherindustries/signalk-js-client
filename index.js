@@ -84,7 +84,7 @@ Client.prototype.connect = function(options) {
     );
   }
 
-  return this.discoverAndConnect(options);
+  return Promise.resolve(options)
 };
 
 /**
